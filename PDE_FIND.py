@@ -28,7 +28,7 @@ def TikhonovDiff(f, dx, lam, d = 1):
     """
     Tikhonov differentiation.
 
-    return argmin_g \|Ag-f\|^2 + lam*\|Dg\|^2
+    return argmin_g \|Ag-f\|_2^2 + lam*\|Dg\|_2^2
     where A is trapezoidal integration and D is finite differences for first dervative
 
     It looks like it will work well and does for the ODE case but 
@@ -54,7 +54,9 @@ def TikhonovDiff(f, dx, lam, d = 1):
     g = np.squeeze(np.asarray(np.linalg.lstsq(A.T.dot(A) + lam*D.T.dot(D),A.T.dot(f))[0]))
     
     if d == 1: return g
-    else: return TikhonovDiff(g, dx, lam, d - 1)
+
+    # If looking for a higher order derivative, this one should be smooth so now we can use finite differences
+    else: return FiniteDiff(g, dx, d-1)
     
 def FiniteDiff(u, dx, d):
     """
@@ -273,7 +275,7 @@ def build_linear_system(u, dt, dx, D = 3, P = 3,time_diff = 'poly',space_diff = 
                         'FD' = standard finite differences
                         'FDconv' = finite differences with convolutional smoothing 
                                    before and after along x-axis at each timestep
-                        'TV' = Tikhonov (not recommended for short simulations)
+                        'Tik' = Tikhonov (takes very long time)
             space_diff = same as time_diff with added option, 'Fourier' = differentiation via FFT
             lam_t = penalization for L2 norm of second time derivative
                     only applies if time_diff = 'TV'
@@ -336,11 +338,14 @@ def build_linear_system(u, dt, dx, D = 3, P = 3,time_diff = 'poly',space_diff = 
         for i in range(n2):
             ut[i,:] = PolyDiff(u[i+offset_x,:],T,diff=1,width=width_t,deg=deg_t)[:,0]
 
+    elif time_diff == 'Tik':
+        for i in range(n2):
+            ut[i,:] = TikhonovDiff(u[i + offset_x,:], dt, lam_t)
+
     else:
         for i in range(n2):
-            if time_diff == 'FD': ut[i,:] = FiniteDiff(u[i + offset_x,:],dt,1)
-            elif time_diff == 'TV': ut[i + offset_x,:] = TikhonovDiff(u[i,:], dt, lam_t)
-
+            ut[i,:] = FiniteDiff(u[i + offset_x,:],dt,1)
+    
     ut = np.reshape(ut, (n2*m2,1), order='F')
 
     ########################
