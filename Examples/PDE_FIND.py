@@ -580,7 +580,7 @@ def STRidge(X0, y, lam, maxit, tol, normalize = 2, print_results = False):
     if lam != 0: w = np.linalg.lstsq(X.T.dot(X) + lam*np.eye(d),X.T.dot(y))[0]
     else: w = np.linalg.lstsq(X,y)[0]
     num_relevant = d
-    biginds = np.where( abs(w) > tol)[0]
+    biginds = np.where( abs(w) < tol)[0]
     
     # Threshold and continue
     for j in range(maxit):
