@@ -435,7 +435,7 @@ def TrainSTRidge(R, Ut, lam, d_tol, maxit = 25, STR_iters = 10, l0_penalty = Non
     err_best = np.linalg.norm(TestY - TestR.dot(w_best), 2) + l0_penalty*np.count_nonzero(w_best)
     tol_best = 0
 
-    # Now increase lambda until we see decrease in testing performance
+    # Now increase tolerance until test performance decreases
     for iter in range(maxit):
 
         # Get a set of coefficients and error
