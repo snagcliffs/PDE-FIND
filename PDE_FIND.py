@@ -624,7 +624,7 @@ def FoBaGreedy(X, y, epsilon = 0.1, maxit_f = 100, maxit_b = 5, backwards_freq =
     F = {}
     F[0] = set()
     w = {}
-    w[0] = np.zeros((d,1), dtype=np.complex64)
+    w[0] = np.zeros((d,1))
     k = 0
     delta = {}
 
@@ -633,15 +633,19 @@ def FoBaGreedy(X, y, epsilon = 0.1, maxit_f = 100, maxit_b = 5, backwards_freq =
         k = k+1
 
         # forward step
-        non_zeros = np.where(w[k-1] == 0)[0]
+        zero_coeffs = np.where(w[k-1] == 0)[0]
         err_after_addition = []
         residual = y - X.dot(w[k-1])
-        for i in range(len(non_zeros)):
+        for i in zero_coeffs:
+
+            # Per figure 3 line 8 in paper, do not retrain old variables.
+            # Only look for optimal alpha, which is solving for new w iff X is unitary
             alpha = X[:,i].T.dot(residual)/np.linalg.norm(X[:,i])**2
+
             w_added = np.copy(w[k-1])
             w_added[i] = alpha
             err_after_addition.append(np.linalg.norm(X.dot(w_added)-y))
-        i = np.argmin(err_after_addition)
+        i = zero_coeffs[np.argmin(err_after_addition)]
         
         F[k] = F[k-1].union({i})
         w[k] = np.zeros((d,1), dtype=np.complex64)
@@ -656,15 +660,15 @@ def FoBaGreedy(X, y, epsilon = 0.1, maxit_f = 100, maxit_b = 5, backwards_freq =
 
             for backward_iter in range(maxit_b):
 
-                non_zeros = np.where(w[k] != 0)
+                non_zeros = np.where(w[k] != 0)[0]
                 err_after_simplification = []
-                for j in range(len(non_zeros)):
+                for j in non_zeros:
                     w_simple = np.copy(w[k])
                     w_simple[j] = 0
                     err_after_simplification.append(np.linalg.norm(X.dot(w_simple) - y))
                 j = np.argmin(err_after_simplification)
                 w_simple = np.copy(w[k])
-                w_simple[j] = 0
+                w_simple[non_zeros[j]] = 0
 
                 # check for break condition on backward step
                 delta_p = err_after_simplification[j] - np.linalg.norm(X.dot(w[k]) - y)
@@ -672,7 +676,7 @@ def FoBaGreedy(X, y, epsilon = 0.1, maxit_f = 100, maxit_b = 5, backwards_freq =
 
                 k = k-1;
                 F[k] = F[k+1].difference({j})
-                w[k] = np.zeros((d,1), dtype=np.complex64)
+                w[k] = np.zeros((d,1))
                 w[k][list(F[k])] = np.linalg.lstsq(X[:, list(F[k])], y)[0]
 
     return w[k] 
