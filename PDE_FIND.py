@@ -411,6 +411,9 @@ def TrainSTRidge(R, Ut, lam, d_tol, maxit = 25, STR_iters = 10, l0_penalty = Non
 
     It runs over different values of tolerance and trains predictors on a training set, then evaluates them 
     using a loss function on a holdout set.
+
+    Please note published article has typo.  Loss function used here for model selection evaluates fidelity using 2-norm,
+    not squared 2-norm.
     """
 
     # Split data into 80% training and 20% test, then search for the best tolderance.
