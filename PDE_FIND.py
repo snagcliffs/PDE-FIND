@@ -145,10 +145,9 @@ def PolyDiff(u, x, deg = 3, diff = 1, width = 5):
     # Take the derivatives in the center of the domain
     for j in range(width, n-width):
 
-        points = np.arange(j - width, j + width)
+        points = np.arange(j - width, j + width + 1)
 
-        # Fit to a Chebyshev polynomial
-        # this is the same as any polynomial since we're on a fixed grid but it's better conditioned :)
+        # Fit to a polynomial
         poly = np.polynomial.chebyshev.Chebyshev.fit(x[points],u[points],deg)
 
         # Take derivatives
@@ -171,8 +170,7 @@ def PolyDiffPoint(u, x, deg = 3, diff = 1, index = None):
     n = len(x)
     if index == None: index = (n-1)/2
 
-    # Fit to a Chebyshev polynomial
-    # better conditioned than normal polynomials
+    # Fit to a polynomial
     poly = np.polynomial.chebyshev.Chebyshev.fit(x,u,deg)
     
     # Take derivatives
