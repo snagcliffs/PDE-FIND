@@ -1,0 +1,1 @@
+This codebase is not actively maintained.  An improved implementation may be found in the [PySINDy package](https://github.com/dynamicslab/pysindy).  See notebook 10 in PySINDy/examples.
