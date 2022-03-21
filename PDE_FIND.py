@@ -145,7 +145,9 @@ def PolyDiff(u, x, deg = 3, diff = 1, width = 5):
     # Take the derivatives in the center of the domain
     for j in range(width, n-width):
 
-        points = np.arange(j - width, j + width + 1)
+        # Note code takes an even number of points here.
+        # This is an oversight in the original code.
+        points = np.arange(j - width, j + width)
 
         # Fit to a polynomial
         poly = np.polynomial.chebyshev.Chebyshev.fit(x[points],u[points],deg)
