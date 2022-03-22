@@ -615,12 +615,16 @@ def STRidge(X0, y, lam, maxit, tol, normalize = 2, print_results = False):
     if normalize != 0: return np.multiply(Mreg,w)
     else: return w
     
-def FoBaGreedy(X, y, epsilon = 0.1, maxit_f = 100, maxit_b = 5, backwards_freq = 5):
+def FoBaGreedy(X, y, epsilon = 0.1, maxit_f = 100, maxit_b = 5, backwards_freq = 5, relearn_f=True, relearn_b=True):
     """
     Forward-Backward greedy algorithm for sparse regression.
+    See Zhang, Tom. 'Adaptive Forward-Backward Greedy Algorithm for Sparse Learning with Linear Models', NIPS, 2008
 
-    See Zhang, Tom. 'Adaptive Forward-Backward Greedy Algorithm for Sparse Learning with Linear
-    Models', NIPS, 2008
+    The original version of this code that was uploaded github was contained errors.  This version has been corrected and
+    also includes an variation of FoBa used in Thaler et al. 'Sparse identification of truncation errors,' JCP, 2019,where 
+    we have additionally used relearning on the backwards step.  This later implementation (currently set as the default 
+    with relearn_f=relearn_b=True) relearns non-zero terms of w, rather than only fitting the residual, as was done in Zhang.  
+    It is slower, more robust, but still in some cases underperforms STRidge.
     """
 
     n,d = X.shape
@@ -637,16 +641,24 @@ def FoBaGreedy(X, y, epsilon = 0.1, maxit_f = 100, maxit_b = 5, backwards_freq =
 
         # forward step
         zero_coeffs = np.where(w[k-1] == 0)[0]
+        if len(zero_coeffs)==0: return w[k-1]
+        
         err_after_addition = []
         residual = y - X.dot(w[k-1])
         for i in zero_coeffs:
 
-            # Per figure 3 line 8 in paper, do not retrain old variables.
-            # Only look for optimal alpha, which is solving for new w iff X is unitary
-            alpha = X[:,i].T.dot(residual)/np.linalg.norm(X[:,i])**2
+            if relearn_f:
+                F_trial = F[k-1].union({i})
+                w_added = np.zeros((d,1))
+                w_added[list(F_trial)] = np.linalg.lstsq(X[:, list(F_trial)], y, rcond=None)[0]
+                
+            else:
+                # Per figure 3 line 8 in paper, do not retrain old variables.
+                # Only look for optimal alpha, which is solving for new w iff X is unitary
+                alpha = X[:,i].T.dot(residual)/np.linalg.norm(X[:,i])**2
+                w_added = np.copy(w[k-1])
+                w_added[i] = alpha
 
-            w_added = np.copy(w[k-1])
-            w_added[i] = alpha
             err_after_addition.append(np.linalg.norm(X.dot(w_added)-y))
         i = zero_coeffs[np.argmin(err_after_addition)]
         
@@ -666,8 +678,16 @@ def FoBaGreedy(X, y, epsilon = 0.1, maxit_f = 100, maxit_b = 5, backwards_freq =
                 non_zeros = np.where(w[k] != 0)[0]
                 err_after_simplification = []
                 for j in non_zeros:
-                    w_simple = np.copy(w[k])
-                    w_simple[j] = 0
+
+                    if relearn_b:
+                        F_trial = F[k].difference({j})
+                        w_simple = np.zeros((d,1))
+                        w_simple[list(F_trial)] = np.linalg.lstsq(X[:, list(F_trial)], y, rcond=None)[0]
+                
+                    else:
+                        w_simple = np.copy(w[k])
+                        w_simple[j] = 0
+
                     err_after_simplification.append(np.linalg.norm(X.dot(w_simple) - y))
                 j = np.argmin(err_after_simplification)
                 w_simple = np.copy(w[k])
